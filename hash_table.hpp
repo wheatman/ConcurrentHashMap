@@ -3,6 +3,7 @@
 #include "parallel.h"
 #include "reducer.h"
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -76,6 +77,12 @@ public:
     sets[bucket].s.second.lock();
     sets[bucket].s.first.insert(k);
     sets[bucket].s.second.unlock();
+  }
+
+  void insert_batch(Key *k, uint64_t num_keys) {
+    std::sort(k, k + num_keys,
+              [](Key a, Key b) { return Hash{}(a) > Hash{}(b); });
+    parallel_for(uint64_t i = 0; i < num_keys; i++) { insert(k[i]); }
   }
 
   void remove(Key k) {
