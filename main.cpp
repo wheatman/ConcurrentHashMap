@@ -126,10 +126,12 @@ int main(int32_t argc, char *argv[]) {
   uint64_t batch_size = std::strtol(argv[2], nullptr, 10);
   uint64_t blow_up_factor = std::strtol(argv[3], nullptr, 10);
 
-  test_hashmap_unordered_insert_batches(num_elements, batch_size,
-                                        blow_up_factor, seed);
-  test_hashmap_unordered_insert_batches_2(num_elements, batch_size,
-                                          blow_up_factor, seed);
+  for (uint64_t i = 1000; i < num_elements; i *= 10) {
+    for (uint64_t j = 100; j < i / 10; j *= 10) {
+      test_hashmap_unordered_insert_batches(i, j, blow_up_factor, seed);
+      test_hashmap_unordered_insert_batches_2(i, j, blow_up_factor, seed);
+    }
+  }
 
   return 0;
 }

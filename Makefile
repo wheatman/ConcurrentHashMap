@@ -7,7 +7,7 @@ OPENMP?=0
 ENABLE_TRACE_TIMER?=1
 PARALLEL=0
 
-CFLAGS := -Wall -Wextra -O$(OPT) -g  -std=c++17
+CFLAGS := -Wall -Wextra -O$(OPT) -g  -std=c++17 -fno-omit-frame-pointer
 
 LDFLAGS := -lrt -lm -lm -ldl 
 
