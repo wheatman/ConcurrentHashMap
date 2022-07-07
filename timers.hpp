@@ -11,6 +11,7 @@ class timer {
   uint64_t elapsed_time = 0;
   std::string name;
   static constexpr bool csv_printing = true;
+  bool reported = false;
 #endif
 
 #if CYCLE_TIMER == 1
@@ -42,8 +43,11 @@ public:
     elapsed_time += (end_time - starting_time);
 #endif
   }
-  inline void report() {
+  inline void report([[maybe_unused]] bool clear = true) {
 #if ENABLE_TRACE_TIMER == 1
+    if (clear) {
+      reported = true;
+    }
     if (csv_printing) {
 #if CYCLE_TIMER == 1
       std::cout << name << ", " << elapsed_time << ", cycles" << std::endl;
@@ -60,9 +64,21 @@ public:
 #endif
   }
 
+  uint64_t get([[maybe_unused]] bool clear = true) {
+#if ENABLE_TRACE_TIMER == 1
+    if (clear) {
+      reported = true;
+    }
+    return elapsed_time;
+#endif
+    return 0;
+  }
+
   ~timer() {
 #if ENABLE_TRACE_TIMER == 1
-    report();
+    if (!reported) {
+      report();
+    }
 #endif
   }
 };

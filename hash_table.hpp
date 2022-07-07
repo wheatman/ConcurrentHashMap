@@ -20,26 +20,38 @@ private:
   };
   std::vector<aligned_map> maps;
 
+  static size_t bucket_hash(Key k) { return Hash{}(k >> (sizeof(Key) * 4)); }
+
+  template <class U> size_t log2_up(U i) {
+    size_t a = 0;
+    U b = i - 1;
+    while (b > 0) {
+      b = b >> 1U;
+      a++;
+    }
+    return a;
+  }
+
 public:
-  ConcurrentHashMap(int num_workers, int blow_up_factor = 10)
-      : maps(num_workers * blow_up_factor) {}
+  ConcurrentHashMap(int blow_up_factor = 10)
+      : maps(1UL << log2_up(getWorkers() * blow_up_factor)) {}
 
   void insert(Key k, T value) {
-    size_t bucket = Hash{}(k) % maps.size();
+    size_t bucket = bucket_hash(k) % maps.size();
     maps[bucket].m.second.lock();
     maps[bucket].m.first.insert({k, value});
     maps[bucket].m.second.unlock();
   }
 
   void remove(Key k) {
-    size_t bucket = Hash{}(k) % maps.size();
+    size_t bucket = bucket_hash(k) % maps.size();
     maps[bucket].m.second.lock();
     maps[bucket].m.first.erase(k);
     maps[bucket].m.second.unlock();
   }
 
   T value(Key k, T null_value) {
-    size_t bucket = Hash{}(k) % maps.size();
+    size_t bucket = bucket_hash(k) % maps.size();
     maps[bucket].m.second.lock();
     auto it = maps[bucket].m.first.find(k);
     T value;
@@ -52,7 +64,7 @@ public:
     return value;
   }
   bool contains(Key k) {
-    size_t bucket = Hash{}(k) % maps.size();
+    size_t bucket = bucket_hash(k) % maps.size();
     maps[bucket].m.second.lock();
     bool has = maps[bucket].m.first.contains(k);
     maps[bucket].m.second.unlock();
@@ -68,12 +80,24 @@ private:
   };
   std::vector<aligned_set> sets;
 
+  static size_t bucket_hash(Key k) { return Hash{}(k >> (sizeof(Key) * 4)); }
+
+  template <class T> size_t log2_up(T i) {
+    size_t a = 0;
+    T b = i - 1;
+    while (b > 0) {
+      b = b >> 1U;
+      a++;
+    }
+    return a;
+  }
+
 public:
   ConcurrentHashSet(int num_workers, int blow_up_factor = 10)
-      : sets(num_workers * blow_up_factor) {}
+      : sets(1UL << log2_up(num_workers * blow_up_factor)) {}
 
   void insert(Key k) {
-    size_t bucket = Hash{}(k) % sets.size();
+    size_t bucket = bucket_hash(k) % sets.size();
     sets[bucket].s.second.lock();
     sets[bucket].s.first.insert(k);
     sets[bucket].s.second.unlock();
@@ -81,19 +105,19 @@ public:
 
   void insert_batch(Key *k, uint64_t num_keys) {
     std::sort(k, k + num_keys,
-              [](Key a, Key b) { return Hash{}(a) > Hash{}(b); });
+              [](Key a, Key b) { return bucket_hash(a) > bucket_hash(b); });
     parallel_for(uint64_t i = 0; i < num_keys; i++) { insert(k[i]); }
   }
 
   void remove(Key k) {
-    size_t bucket = Hash{}(k) % sets.size();
+    size_t bucket = bucket_hash(k) % sets.size();
     sets[bucket].s.second.lock();
     sets[bucket].s.first.erase(k);
     sets[bucket].s.second.unlock();
   }
 
   bool contains(Key k) {
-    size_t bucket = Hash{}(k) % sets.size();
+    size_t bucket = bucket_hash(k) % sets.size();
     sets[bucket].s.second.lock();
     bool has = sets[bucket].s.first.contains(k);
     sets[bucket].s.second.unlock();
